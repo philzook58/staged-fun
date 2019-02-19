@@ -17,6 +17,23 @@ https://www.nowpublishers.com/article/Details/PGL-038
 
 https://markkarpov.com/tutorial/th.html
 
+SPJ talk
+https://www.cl.cam.ac.uk/events/metaprog2016/Template-Haskell-Aug16.pptx
+
+
+interesting error handling stuff.
+
+
+Tim Sheard lecture
+web.cecs.pdx.edu/~sheard/course/AdvancedFP/notes/StagingInHaskell.pdf
+
+GHC manual section
+https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#th-usage
+
+staged interpeters
+
+
+
 quotations
 splice - turns 
 

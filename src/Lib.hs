@@ -42,7 +42,7 @@ instance SSym HOAS where
 class SLam repr where
     lam :: repr a -> repr b -> repr (a -> b) 
 -}
-
+type Code = TExpQ
 
 -- unrolled fib woth sharing
 fib 0 = 1
@@ -54,6 +54,14 @@ fib' :: Int -> TExpQ Int
 fib' 0 = [|| 1 ||]
 fib' 1 = [|| 1 ||] 
 fib' n = [|| $$(fib' (n-1)) + $$(fib' (n-2)) ||] -- 
+
+-- sharing?
+fib'' :: Int -> TExpQ Int
+fib'' 0 = [|| 1 ||]
+fib'' 1 = [|| 1 ||] 
+fib'' n = [|| $$(fib' (n-1)) + $$(fib' (n-2)) ||] -- 
+
+-- I mean a part of doing this with templates, is how would you write it by hand?
 
 ex3 :: String
 ex3 = $$( [|| "fred" ||] )
