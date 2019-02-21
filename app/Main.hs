@@ -13,4 +13,8 @@ ex1 = $$(eval (Add (Val 1) (Val 1)))
 ex2 :: Int -> Int
 ex2 = $$(power' 3)
 
-ex4 = $$(fib' 5)
+ex4 = $$(fib' 7)
+
+ex5 = $$(fib3 15)
+
+ex6 = $$(fib4 7)
