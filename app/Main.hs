@@ -18,3 +18,5 @@ ex4 = $$(fib' 7)
 ex5 = $$(fib3 15)
 
 ex6 = $$(fib4 7)
+
+ex7 = $$(runCat (Comp Dup Dup)  )

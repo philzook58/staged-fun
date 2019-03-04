@@ -1,7 +1,9 @@
-{-# LANGUAGE TemplateHaskell, TypeSynonymInstances #-}
+{-# LANGUAGE TemplateHaskell, TypeSynonymInstances, GADTs, DeriveLift,
+ StandaloneDeriving, FlexibleContexts #-}
 {-# OPTIONS_GHC -ddump-splices #-}
 module Lib  where
 import Language.Haskell.TH
+import Language.Haskell.TH.Syntax
 
 
 someFunc :: IO ()
@@ -34,6 +36,8 @@ eval'' (Add e1 e2) = (+) <$> (eval'' e1) <*> (eval'' e2)
 -- maybe this is why the finally tagless indirection is necessary?
 
 newtype Code a = Code (TExpQ a)
+
+
 class ExprS repr where
     val :: Int -> repr Int
     add :: repr (Int -> Int -> Int) -- repr Int -> repr Int -> repr Int ? Why not this?
@@ -109,6 +113,96 @@ ex3 :: String
 ex3 = $$( [|| "fred" ||] )
 
 -- a category of template haskell?
+
+{-
+data Ding a where
+    Read :: Ding String
+    Print :: String -> Ding ()
+    Bind :: Lift a => Ding a -> TExpQ (a -> (Ding b)) -> Ding b
+    Pure :: a -> Ding a 
+-- deriving instance Lift a => Lift (Ding a)
+
+interp2 :: Lift a => Ding a -> TExpQ (IO a)
+interp2 (Read) = [|| readLn  ||]
+interp2 (Print s) = [|| print s ||]
+interp2 (Bind x f) =   [|| $$(interp2 x) >>= $$(interp2 . $$(f)) ||]
+interp2 (Pure x) = [|| pure x ||]
+-}
+{-
+data LExpr = Var Int | Lam LExpr | App LExpr LExpr | Lit "String"
+interp env (Var n) = env !! n
+interp env (App (Lam f) x) = interp (x : env) f
+interp env (Lam f) = Lam f
+-}
+
+data Ding a where
+    App' :: (Lift (a -> b), Lift a) => Ding (a -> b) -> Ding a -> Ding b -- Very suspicious? 
+    Pure :: a -> Ding a -- or is this the suspcious one?
+    Print :: String -> Ding ()
+    Read :: Ding String
+deriving instance Lift a => Lift (Ding a)
+
+interp2 :: Lift a => Ding a -> TExpQ (IO a)
+interp2 (Read) = [|| readLn  ||]
+interp2 (Print s) = [|| print s ||]
+interp2 (App' f x) =  [|| $$(interp2 f) <*> $$(interp2 x) ||]
+interp2 (Pure x) = [|| pure x ||]
+
+
+
+lam :: (TExpQ a -> TExpQ b) -> TExpQ (a -> b)
+lam f = [|| \x -> $$(f [|| x ||]) ||]
+
+app :: TExpQ (a -> b) -> TExpQ a -> TExpQ b
+app f x = [|| $$(f) $$(x) ||]
+
+
+-- http://mpickering.github.io/posts/2019-02-14-stage-3.html
+
+data SynApplicative a where
+    Return :: WithCode a -> SynApplicative a
+    App  :: SynApplicative (a -> b) -> SynApplicative a -> SynApplicative b
+  
+data WithCode a = WithCode { _val :: a, _code :: TExpQ a }
+
+liftT :: Lift a => a -> TExpQ a
+liftT = unsafeTExpCoerce . lift
+
+
+newtype FunCode k a b = FunCode (TExpQ (k a b))
+data FreeCat a b where
+    Dup :: FreeCat a (a,a)
+    Comp :: FreeCat b c -> FreeCat a b -> FreeCat a c
+    Id :: FreeCat a a
+    Fst :: FreeCat (a,b) a
+    Snd :: FreeCat (a,b) b
+deriving instance Lift (FreeCat a b)
+
+runCat :: FreeCat a b -> TExpQ (a -> b)
+runCat Dup = [|| \x -> (x,x) ||]
+runCat Id = [|| id ||]
+runCat Fst = [|| fst ||]
+runCat Snd = [|| snd ||]
+runCat (Comp f g) = [|| $$(runCat f) . $$(runCat g) ||]
+
+{-
+data Bell = Done | Print String Bell | Read (String -> Bell)
+interp :: Bell -> TExpQ (IO ())
+interp (Done) = [|| return () ||]
+interp (Print s more) = [|| print s >> $$(interp more)||]
+interp (Read f) =  [||  fmap (const () . f) readLn ||]
+-}
+
+
+
+{-
+interp :: Ding a -> (IO a)
+interp (Read) = readLn  
+interp (Print s) = print s 
+interp (Bind x f) = (interp x) >>= (interp . f)
+interp (Pure x) = pure x
+
+-}
 
 
 -- .< >. metaocaml
